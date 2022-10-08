@@ -2,17 +2,24 @@ import smtplib
 from email.message import EmailMessage 
 
 def enviar(email_destino,mensaje,asunto):
-    email_origen="rshernandez@uninorte.edu.co"
-    password="RogerS123-"
-    email = EmailMessage()
-    email["From"] = email_origen
-    email["To"] = email_destino
-    email["Subject"] = asunto
-    email.set_content(mensaje)
+    
+    try:
+        email_origen="rshernandez@uninorte.edu.co"
+        password="" #tu contraseña aqui sin espacios 
+        email = EmailMessage()
+        email["From"] = email_origen
+        email["To"] = email_destino
+        email["Subject"] = asunto
+        email.set_content(mensaje)
 
     # Send Email
-    smtp = smtplib.SMTP("smtp-mail.outlook.com", port=587)
-    smtp.starttls()
-    smtp.login(email_origen, password)
-    smtp.sendmail(email_origen, email_destino, email.as_string())
-    smtp.quit()
+        smtp = smtplib.SMTP("smtp-mail.outlook.com", port=587)
+        smtp.starttls()
+        smtp.login(email_origen, password)
+        smtp.sendmail(email_origen, email_destino, email.as_string())
+        smtp.quit()
+        return "1"
+    except :
+        return "0"
+    
+    

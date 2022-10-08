@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\Users\ASUS\Desktop\mintic ciclo3\ProyectoFinal\proyectoMail\env"
+VIRTUAL_ENV="C:\ProPy\2109\ProyectoMensajes2\env"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

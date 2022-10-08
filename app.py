@@ -1,139 +1,142 @@
-from flask import Flask, render_template,request
+from flask import Flask, render_template, request
 import hashlib
 import controlador
 from datetime import datetime
+import random
 import envioemail
 
-
 app = Flask(__name__)
-
-email_origen=""
+origen=""
 
 @app.route("/")
-def incio():
+def hello_world():
     return render_template("login.html")
 
-@app.route("/validarUsuario",methods=["GET","POST"])
-def validarUsuario():
+@app.route("/VerificarUsuario",methods=["GET","POST"])
+def VerificarUsuario():
     if request.method=="POST":
-        usu=request.form["txtusuario"]
-        usu=usu.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("WHERE","")
+        correo=request.form["txtusuario"]
+        correo=correo.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("select","").replace("insert","").replace("update","").replace("delete","")
         passw=request.form["txtpass"]
-        passw=passw.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("WHERE","")
+        passw=passw.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("select","").replace("insert","").replace("update","").replace("delete","")
         
         passw2=passw.encode()
-        #passw2=hashlib.sha256(passw2).hexdigest()
-        passw2=hashlib.sha384(passw2).hexdigest()
+        passw2=hashlib.sha384(passw2).hexdigest() #96 caracteres
         
-        respuesta=controlador.validar_usuario(usu,passw2)
+        respuesta=controlador.validar_usuaro(correo,passw2)
         
-        global email_origen
+        global origen
         
         if len(respuesta)==0:
-            email_origen=""
-            mensaje= "ERROR DE AUTENTICACION!!!  lo invitamos a verificar su usuario(correo) y contraseña "
-            return render_template("informacion.html",datas=mensaje)
+            origen=""
+            mensaje="ERROR DE AUtenticacion!!! verifique su usuario y contraseña y/o Verifique si su usario se encuentra activo."
+            return render_template("informacion.html",data=mensaje)
         else:
-            email_origen=usu
-            respuesta2=controlador.lista_destinatarios(usu)     
-            return render_template("principal.html",datas=respuesta2)
+            origen=correo
+            respuesta2=controlador.listadoUsuarios(correo)
+            return render_template("principal.html",data=respuesta2,infousuario=respuesta)
         
-@app.route("/registrarUsuario",methods=["GET","POST"])
-def registrarUsuario():
+@app.route("/RegistrarUsuario",methods=["GET","POST"])
+def RegistrarUsuario():
     if request.method=="POST":
         nombre=request.form["txtnombre"]
-        nombre=nombre.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("WHERE","")
-        email=request.form["txtusuario2registro"]
-        email=email.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("WHERE","")
+        nombre=nombre.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("select","").replace("insert","").replace("update","").replace("delete","")
+        correo=request.form["txtusuarioregistro"]
+        correo=correo.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("select","").replace("insert","").replace("update","").replace("delete","")
         passw=request.form["txtpassregistro"]
-        passw=passw.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("WHERE","")
+        passw=passw.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("select","").replace("insert","").replace("update","").replace("delete","")
         
         passw2=passw.encode()
-        #passw2=hashlib.sha256(passw2).hexdigest()
-        passw2=hashlib.sha384(passw2).hexdigest()
-        
+        passw2=hashlib.sha384(passw2).hexdigest() #96 caracteres
+                        
         codigo=datetime.now()
         codigo2=str(codigo)
         codigo2=codigo2.replace("-","")
-        codigo2=codigo2.replace(" ","")
         codigo2=codigo2.replace(":","")
+        codigo2=codigo2.replace(" ","")
         codigo2=codigo2.replace(".","")
         
-        print(codigo2)
+        #codigo3=random.randint(10000,1000000)
+        #codigo4=str(codigo3)+codigo2
+                
+        respuesta=controlador.regis_usuaro(nombre,correo, passw2,codigo2)
         
-        mensaje="Sr "+nombre+", su codigo de activacion es :\n\n"+codigo2+ "\n\n Recuerde copiarlo y pegarlo para validarlo en la seccion de login y activar su cuenta.\n\nMuchas Gracias"
-        
-        envioemail.enviar(email,mensaje,"Codigo de Activacion")
-        
-        respuesta=controlador.registrar_usuario(nombre,email,passw2,codigo2)
-        
-        #mensaje= "El usuario "+nombre+", se ha registrado satisfactoriamente."
-        return render_template("informacion.html",datas=respuesta)
+        if respuesta=="1":
+            mensaje="Sr, usuario su codigo de activacion es :\n\n"+codigo2+ "\n\n Recuerde copiarlo y pegarlo para validarlo en la seccion de login y activar su cuenta.\n\nMuchas Gracias"
+            asunto="Codigo de activacion"
+            
+            respEmail=envioemail.enviar(correo,mensaje,asunto)
+            if respEmail=="1":
+                mensaje="Usuarios Registrado Satisfactoriamente"
+            else:
+                mensaje="Registrado correctamente. Email no Enviado, Servicio no disponible, lo invitamos a utilizar el siguiente ecodigo de activacion: "+codigo2    
+        else:
+            mensaje="ERROR, el usuario y/o correo ya existen, verifique sus datos y vuelva a intentarlo"
+            
+        return render_template("informacion.html",data=mensaje)
     
-
-
-@app.route("/enviarMAIL",methods=["GET","POST"])
-def enviarMAIL():
-    if request.method=="POST":
-        emailDestino=request.form["emailDestino"]
-        emailDestino=emailDestino.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("WHERE","")
-        asunto=request.form["asunto"]
-        asunto=asunto.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("WHERE","")
-        mensaje=request.form["mensaje"]
-        mensaje=mensaje.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("WHERE","")
-        
-        controlador.registrar_mail(email_origen,emailDestino,asunto,mensaje)
-        
-        mensaje2="Sr Usuario, usted recibio un mensaje nuevo, por favor ingrese a la plataforma para observar su email, en la pestaña Historial. \n\n Muchas gracias."
-        envioemail.enviar(emailDestino,mensaje2,"Nuevo Mensaje Enviado")
-        return "Email Enviado Satisfactoriamente"
-
-
-@app.route("/actualizacionPassword",methods=["GET","POST"])
-def actualizacionPassword():
-    if request.method=="POST":
-        pass1=request.form["pass"]
-        pass1=pass1.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("WHERE","")
-        passw2=pass1.encode()
-        passw2=hashlib.sha384(passw2).hexdigest()
-               
-        controlador.actualizapass(passw2,email_origen)
-        return "Actualizacion de Password Satisfactoria"
-       
-
-
-@app.route("/activarUsuario",methods=["GET","POST"])
-def activarUsuario():
+    
+@app.route("/ActivarUsuario",methods=["GET","POST"])
+def ActivarUsuario():
     if request.method=="POST":
         codigo=request.form["txtcodigo"]
-        codigo=codigo.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("WHERE","")
-               
-        respuesta=controlador.activar_usuario(codigo)
+        codigo=codigo.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("select","").replace("insert","").replace("update","").replace("delete","")
         
+        respuesta=controlador.activarU(codigo)
+
         if len(respuesta)==0:
-            mensaje= "El codigo de activacion es erroneo, verifiquelo."
+            mensaje="Codigo incorrecto"
+            return render_template("informacion.html",data=mensaje)
         else:
-            mensaje= "El usuario se ha activado exitosamente."
-        
-        return render_template("informacion.html",datas=mensaje)
-    
-
-@app.route("/HistorialEnviados",methods=["GET","POST"])
-def HistorialEnviados():
-    resultado=controlador.ver_enviados(email_origen)
-    return render_template("respuesta.html",datas=resultado)
-
-
-@app.route("/HistorialRecibidos",methods=["GET","POST"])
-def HistorialRecibidos():
-    resultado=controlador.ver_recibidos(email_origen)
-    return render_template("respuesta.html",datas=resultado)
-
-
-
-    
-    
-
+            mensaje="Usuario Activado Satisfactoriamente"
+            return render_template("informacion.html",data=mensaje)
         
 
+@app.route("/EnviarMensaje",methods=["GET","POST"])
+def EnviarMensaje():
+    if request.method=="POST":
+        asunto=request.form["asunto"]
+        asunto=asunto.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("select","").replace("insert","").replace("update","").replace("delete","")
+        mensaje=request.form["mensaje"]
+        mensaje=mensaje.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("select","").replace("insert","").replace("update","").replace("delete","")
+        destino=request.form["destino"]
+        destino=destino.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("select","").replace("insert","").replace("update","").replace("delete","")
         
+        controlador.regis_mensaje(asunto,mensaje,origen,destino)
+        
+        mensaje2="Usted ha recibo un nuevo mensaje, por favor ingrese a la plataforma para poder observarlo en su pestaña historial.\n\nMuchas Gracias"
+        asunto2="Nuevo Mensaje"
+        
+        envioemail.enviar(destino,mensaje2,asunto2)
+        
+        return "EMAIL ENVIADO SATISFACTORIAMENTE"
+    
+@app.route("/cargaMailEnviados",methods=["GET","POST"])
+def cargaMailEnviados():
+    if request.method=="POST":
+      
+        respuesta=controlador.enviados(origen)
+        return render_template("historialCorreo.html", listaCorreo=respuesta)
+    
+@app.route("/cargaMailRecibidos",methods=["GET","POST"])
+def cargaMailRecibidos():
+    if request.method=="POST":
+      
+        respuesta=controlador.recibidos(origen)
+        return render_template("historialCorreo.html", listaCorreo=respuesta)
+    
+    
+    
+@app.route("/actualizarPassWord",methods=["GET","POST"])
+def actualizarPassWord():
+    if request.method=="POST":
+        
+        passw=request.form["password"]
+        passw=passw.replace("SELECT","").replace("INSERT","").replace("DELETE","").replace("UPDATE","").replace("select","").replace("insert","").replace("update","").replace("delete","")
+        passw2=passw.encode()
+        passw2=hashlib.sha384(passw2).hexdigest()
+        
+        controlador.actualizar_P(passw2,origen)
+        
+        return "Contraseña actualizada satisfactoriamente"
+    
